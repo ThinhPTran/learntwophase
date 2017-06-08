@@ -41,18 +41,15 @@ for iter = 1:N
 end
 
 % At the beginning there is no flow in the tube
-Vsl = zeros(N,1); 
-Vsg = zeros(N,1); 
+Vsl = zeros(N,Nstep); 
+Vsg = zeros(N,Nstep); 
 
 
 % Hydrostatic pressure
-P=zeros(N,1);
-for iter = 1:floor(tllev)+1
-    P(iter)=Pth;
-end
+P=zeros(N,Nstep);
 
-for iter = floor(tllev)+2:N
-    P(iter) = P(iter-1) + rhoL(1)*g;
+for iter = 2:N
+    P(iter) = P(iter-1) + rhoL(1)*HL(iter)*g*dL;
 end
 
 figure(1)
@@ -122,9 +119,17 @@ for iter = 2:Nstep
     
     for jter = N-1:-1:1
        if (HG(jter,iter-1)==0) 
-         rhoLVslrhoGVsg(jter,iter) = rhoLVslrhoGVsg(jter,iter-1) + (rhoL*Vsl(jter,iter-1)*Vsl(jter,iter-1)-rhoL*Vsl(jter+1,iter-1)*Vsl(jter+1,iter-1))*fldirect*dt/dL;
+         rhoLVslrhoGVsg(jter,iter) = rhoLVslrhoGVsg(jter,iter-1)  ...
+                                   + (rhoL*Vsl(jter,iter-1)*Vsl(jter,iter-1)-rhoL*Vsl(jter+1,iter-1)*Vsl(jter+1,iter-1))*fldirect*dt/dL ...
+                                   + (P(jter,iter-1)-P(jter+1,iter-1))*dt/dL ...
+                                   - (g*sin(pi/2)*(rhoL(jter,iter-1)*HL(jter,iter-1)+rhoG(jter,iter-1)*HG(jter,iter-1)))*dt ...
+                                   - (Vsl(jter,iter-1)*Vsl(jter,iter-1)-Vsl(jter+1,iter-1)*Vsl(jter+1,iter-1))*0.01*dt;
        elseif (HL(jter,iter-1)==0)   
-         
+         rhoLVslrhoGVsg(jter,iter) = rhoLVslrhoGVsg(jter,iter-1)  ...
+                                   + (rhoL*Vsl(jter,iter-1)*Vsl(jter,iter-1)-rhoL*Vsl(jter+1,iter-1)*Vsl(jter+1,iter-1))*fldirect*dt/dL ...
+                                   + (P(jter,iter-1)-P(jter+1,iter-1))*dt/dL ...
+                                   - (g*sin(pi/2)*(rhoL(jter,iter-1)*HL(jter,iter-1)+rhoG(jter,iter-1)*HG(jter,iter-1)))*dt ...
+                                   - (Vsl(jter,iter-1)*Vsl(jter,iter-1)-Vsl(jter+1,iter-1)*Vsl(jter+1,iter-1))*0.01*dt;
        else 
            
        end
