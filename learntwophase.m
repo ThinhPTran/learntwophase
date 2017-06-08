@@ -26,34 +26,33 @@ rhoG = zeros(N,Nstep); % At the beginning there is no gas in the tube.
 g = 9.8 % m/s^2 
 Pth = 101325 % Atmospher pressure in Pascal
 disp('current level of water in tubing');
-tllev = 3000 - (Pwf(1)-Pth)/(g*rhoL(1))
+tllev = 3000 - (Pwf(1)-Pth)/(g*rhoL)
 
 % At the beginning there is only liquid in the tube
 HG = zeros(N,1); 
 HL = zeros(N,1); 
 
 for iter = floor(tllev)+2:N
-    HL(iter) = 1.0;
+    HL(iter,1) = 1.0;
 end
 
 for iter = 1:N
-   HG(iter) = 1.0 - HL(iter);  
+   HG(iter,1) = 1.0 - HL(iter,1);  
 end
 
 % At the beginning there is no flow in the tube
 Vsl = zeros(N,Nstep); 
 Vsg = zeros(N,Nstep); 
 
-
 % Hydrostatic pressure
 P=zeros(N,Nstep);
 
 for iter = 2:N
-    P(iter) = P(iter-1) + rhoL(1)*HL(iter)*g*dL;
+    P(iter,1) = P(iter-1,1) + rhoL*HL(iter,1)*g*dL;
 end
 
 figure(1)
-plot(verd,P/6894.75729)
+plot(verd,P(:,1)/6894.75729)
 legend('Hydrostatic pressure in Psi');
 
 figure(2)
@@ -84,6 +83,7 @@ fldirect=1;
 
 
 for iter = 2:Nstep
+    iter
     
     if (Pwf<=Pr)
         fldirect=1;
@@ -122,21 +122,45 @@ for iter = 2:Nstep
          rhoLVslrhoGVsg(jter,iter) = rhoLVslrhoGVsg(jter,iter-1)  ...
                                    + (rhoL*Vsl(jter,iter-1)*Vsl(jter,iter-1)-rhoL*Vsl(jter+1,iter-1)*Vsl(jter+1,iter-1))*fldirect*dt/dL ...
                                    + (P(jter,iter-1)-P(jter+1,iter-1))*dt/dL ...
-                                   - (g*sin(pi/2)*(rhoL(jter,iter-1)*HL(jter,iter-1)+rhoG(jter,iter-1)*HG(jter,iter-1)))*dt ...
+                                   - (g*sin(pi/2)*(rhoL*HL(jter,iter-1)+rhoG(jter,iter-1)*HG(jter,iter-1)))*dt ...
                                    - (Vsl(jter,iter-1)*Vsl(jter,iter-1)-Vsl(jter+1,iter-1)*Vsl(jter+1,iter-1))*0.01*dt;
        elseif (HL(jter,iter-1)==0)   
          rhoLVslrhoGVsg(jter,iter) = rhoLVslrhoGVsg(jter,iter-1)  ...
-                                   + (rhoL*Vsl(jter,iter-1)*Vsl(jter,iter-1)-rhoL*Vsl(jter+1,iter-1)*Vsl(jter+1,iter-1))*fldirect*dt/dL ...
+                                   + (rhoG(jter,iter-1)*Vsg(jter,iter-1)*Vsg(jter,iter-1)-rhoG(jter+1,iter-1)*Vsg(jter+1,iter-1)*Vsg(jter+1,iter-1))*dt/dL ...
                                    + (P(jter,iter-1)-P(jter+1,iter-1))*dt/dL ...
-                                   - (g*sin(pi/2)*(rhoL(jter,iter-1)*HL(jter,iter-1)+rhoG(jter,iter-1)*HG(jter,iter-1)))*dt ...
+                                   - (g*sin(pi/2)*(rhoL*HL(jter,iter-1)+rhoG(jter,iter-1)*HG(jter,iter-1)))*dt ...
                                    - (Vsl(jter,iter-1)*Vsl(jter,iter-1)-Vsl(jter+1,iter-1)*Vsl(jter+1,iter-1))*0.01*dt;
        else 
-           
+         rhoLVslrhoGVsg(jter,iter) = rhoLVslrhoGVsg(jter,iter-1)  ...
+                                   + (rhoG(jter,iter-1)*Vsg(jter,iter-1)*Vsg(jter,iter-1)/HG(jter,iter-1)-rhoG*Vsg(jter+1,iter-1)*Vsg(jter+1,iter-1)/HG(jter+1,iter-1))*dt/dL ...
+                                   + (rhoL*Vsl(jter,iter-1)*Vsl(jter,iter-1)/HL(jter,iter-1)-rhoL*Vsl(jter+1,iter-1)*Vsl(jter+1,iter-1)/HL(jter+1,iter-1))*fldirect*dt/dL ...
+                                   + (P(jter,iter-1)-P(jter+1,iter-1))*dt/dL ...
+                                   - (g*sin(pi/2)*(rhoL*HL(jter,iter-1)+rhoG(jter,iter-1)*HG(jter,iter-1)))*dt ...
+                                   - (Vsl(jter,iter-1)*Vsl(jter,iter-1)-Vsl(jter+1,iter-1)*Vsl(jter+1,iter-1))*0.01*dt;  
        end
     end
     
+    % Calculate Vsl
+    for jter = N:-1:1
+       Vsl(jter,iter)=0; 
+    end
+    
+    % Calculate Vsg
+    for jter = N:-1:1
+       if (rhoG(jter,iter)==0)
+          Vsg(jter,iter)=0;
+       else 
+          Vsg(jter,iter)=(rhoLVslrhoGVsg(jter,iter)-rhoL(jter,iter)*Vsl(jter,iter))/rhoG(jter,iter);
+       end
+    end
+    
+    % Calculate P
+    for jter = 2:N
+      P(jter,iter) = P(jter-1,iter) + rhoL*HL(jter,iter)*g*dL + rhoG(jter,iter)*HG(jter,iter)*g*dL;
+    end
     
 end
+    
 
 
 
